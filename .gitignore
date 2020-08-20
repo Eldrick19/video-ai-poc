@@ -1,2 +1,3 @@
 venv/
 videos/input/*.mp4
+videos/output/*.avi

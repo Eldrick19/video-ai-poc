@@ -1,3 +1,2 @@
 venv/
-videos/input/
-videos/output/
+videos/output/*.avi

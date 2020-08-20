@@ -43,6 +43,10 @@ def social_distancing_detection(video_name, storage_online):
     # Display person tracking
     draw_detections(video_path, output_path, detection_df, fps)
 
+    # Return just an output for now
+    return 'Video should be uploaded to GitHub...'
+
+
 # Call the funtion
 if len(sys.argv) > 1:
     video_name = sys.argv[1]

@@ -5,13 +5,18 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.duration_pb2 import Duration
 
 
-def detect_person(video_path, do_segments=False):
+def detect_person(video_path, storage_online, do_segments=False):
     """Detects people in a video."""
 
     client = videointelligence.VideoIntelligenceServiceClient()
+    features = [videointelligence.enums.Feature.PERSON_DETECTION]
 
-    with io.open(''.join(video_path), "rb") as f:
-        input_content = f.read()
+    # Grab video - choose from Cloud Storage or Local Storage
+    if storage_online:
+        input_content = video_path
+    else:
+        with io.open(''.join(video_path), "rb") as f:
+            input_content = f.read()
 
     if do_segments:
         # Pass all segments to analyze (currently per second)
@@ -43,12 +48,19 @@ def detect_person(video_path, do_segments=False):
             person_detection_config=config,
         )
 
-    # Start the asynchronous request
-    operation = client.annotate_video(
-        input_content=input_content,
-        features=[videointelligence.enums.Feature.PERSON_DETECTION],
-        video_context=context,
-    )
+    # Start the asynchronous request - choose from Cloud Storage or Local Storage
+    if storage_online:
+        operation = client.annotate_video(
+            input_uri=input_content, 
+            features=features,
+            video_context=context,
+        )
+    else:
+        operation = client.annotate_video(
+            input_content=input_content,
+            features=features,
+            video_context=context,
+        )
 
     print("\nProcessing video for person detection annotations.")
     result = operation.result(timeout=300)

@@ -24,7 +24,7 @@ def draw_detections(video_path, output_path, detections, fps, dim):
     while(cap.isOpened()):
         ret,frame=cap.read() 
 
-        if ret==True:
+        if ret:
 
             if fc in detections:
                 print('Show # of Rectangles: ', len(detections[fc]))

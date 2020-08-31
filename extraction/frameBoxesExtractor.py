@@ -47,8 +47,6 @@ def detections_at_each_frame(video_path, df, fps, frame_count, dim):
         else:
             print('Arrived at last detection.')
 
-        #print('Show # of Rectangles: ', len(rectangles))
-
         # For each detection in list of detections to display do the following:
         # (1) Check if that detection has ended, if so remove it from list of detections to display
         # (2) Add detections to the detection_pr_frame list
@@ -59,5 +57,5 @@ def detections_at_each_frame(video_path, df, fps, frame_count, dim):
             detections_per_frame.append([fc, rectangle]) # Note that the 0 is to initialize the social distancing variable. See socialDistancingTagger.py in the algorithms folder for more information
         
         fc += 1
-
+    print(detections_per_frame)
     return detections_per_frame

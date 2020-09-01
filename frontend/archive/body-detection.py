@@ -23,6 +23,7 @@ def tag_social_distancing(detections, dim):
     frame_detections = {} # Will hold each frame detection data
     rectangles = [] # Will hold list of detections (rectangle) at each frame
     current_frame = detections[0][0] # Initialize this as starting frame
+    print('First frame: ', current_frame)
     video_area = dim[0]*dim[1]
 
     for i in range(len(detections)):
@@ -31,6 +32,7 @@ def tag_social_distancing(detections, dim):
         # detections[i][1] = rectangle data dictionary (dictionary)
 
         current_frame = detections[i][0]
+        print('Current Detection: ', detections[i])
         if (i+1) == len(detections) or detections[i+1][0] > current_frame: # If next detection is on the next frame, perform calculations of distance before moving onto next frame
             rectangles.append(detections[i][1])
             print('Appending ', rectangles)
@@ -46,25 +48,33 @@ def tag_social_distancing(detections, dim):
                 person_1_center_y = rectangle_to_compare_1["top"] + abs(rectangle_to_compare_1["top"]-rectangle_to_compare_1["bottom"])/2
                 
                 while comparison_index < len(rectangles): # Nested loop, compares all other detections in a frame to the 1st one. 
+                    #print('\nComparing rectangle 1 ', rectangles[rectangle_index]["dc"], ' with 2 ', rectangles[comparison_index]["dc"])
                     rectangle_to_compare_2 = rectangles[comparison_index]
                     percent_of_video_area_2 = (rectangle_to_compare_2["left"]*rectangle_to_compare_2["bottom"])/video_area
                     person_2_center_x = rectangle_to_compare_2["left"] + abs(rectangle_to_compare_2["left"]-rectangle_to_compare_2["right"])/2
                     person_2_center_y = rectangle_to_compare_2["top"] + abs(rectangle_to_compare_2["top"]-rectangle_to_compare_2["bottom"])/2
+                    print('\nPercent of Video 1 ', percent_of_video_area_1, ' with 2 ', percent_of_video_area_2)
+                    print('\nPercent Center 1 ', person_1_center_x, ' ', person_1_center_y, ' with 2 ', person_2_center_x, ' ', person_2_center_y)
                     
                     if abs(percent_of_video_area_1 - percent_of_video_area_2) >= 5: # If video area percentage difference is too large
                         print('Difference between boxes too large')
+                        print('Person 1 area: ', percent_of_video_area_1)
+                        print('Person 2 area: ', percent_of_video_area_2)
                         continue
 
                     # If video area percentage is not too large, find distance between points
                     distance_between_points = math.sqrt(pow((person_1_center_x-person_2_center_x),2)+pow((person_1_center_y-person_2_center_y),2))
                     if distance_between_points <= person_1_height:
                         rectangle_to_compare_1["distance_alert"], rectangle_to_compare_2["distance_alert"] = 1, 1
+                        rectangle_to_compare_1["center"], rectangle_to_compare_2["center"] = {"x":int(person_1_center_x),"y":int(person_1_center_y)}, {"x":int(person_2_center_x),"y":int(person_2_center_y)}
+                        rectangle_to_compare_1["line"] = {"x1":int(person_1_center_x),"y1":int(person_1_center_y),"x2":int(person_2_center_x),"y2":int(person_2_center_y)}
                     else:
                         if "distance_alert" not in rectangle_to_compare_1:
                             rectangle_to_compare_1["distance_alert"] = 0
                         if "distance_alert" not in rectangle_to_compare_2:
                             rectangle_to_compare_2["distance_alert"] = 0 
                     
+                    print()
                     comparison_index+=1
                 
                 rectangle_index+=1
@@ -74,13 +84,14 @@ def tag_social_distancing(detections, dim):
             
         else: # Else you are still on the same frame, add rectangle to list of rectangles for i frame
             rectangles.append(detections[i][1])
+            print('Appending ', rectangles)
 
     return frame_detections
 
 video_name = sys.argv[1]
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector( cv2.HOGDescriptor_getDefaultPeopleDetector() )
-cap=cv2.VideoCapture('C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/input/'+video_name+'.mp4')
+cap=cv2.VideoCapture('C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/input/'+video_name+'.mp4')
 fps = cap.get(cv2.CAP_PROP_FPS)
 dim = [cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)]
 fc = 0
@@ -121,7 +132,10 @@ print('\nTagging Done.\n')
 def draw_rectangle(img, rect, dim, thickness = 1):
     if 'distance_alert' in rect:
         if rect['distance_alert'] == 1:
-            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (255, 0, 0), thickness)
+            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 0, 255), thickness)
+            cv2.circle(img, (rect['center']['x'],rect['center']['y']), 2, (0, 0, 255), thickness)
+            if 'line' in rect:
+                cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), (0, 0, 255), thickness)
         else:
             cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
     else:
@@ -140,7 +154,6 @@ def draw_detections_2(video_path, output_path, detections, fps, dim):
         ret,frame=cap.read() 
 
         if ret:
-
             if fc in detections:
                 print('Show # of Rectangles: ', len(detections[fc]))
                 for rectangle in detections[fc]:
@@ -162,8 +175,8 @@ def draw_detections_2(video_path, output_path, detections, fps, dim):
     cv2.destroyAllWindows() 
     print('Done')
 
-video_path = ['C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/input/', video_name + '.mp4']
-output_path = ['C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/output/', video_name + '.avi']
+video_path = ['C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/input/', video_name + '.mp4']
+output_path = ['C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/output/', video_name + '-2.avi']
 
 draw_detections_2(video_path,output_path, frame_detections, fps, dim)
 

@@ -6,7 +6,10 @@ import cv2
 def draw_rectangle(img, rect, dim, thickness = 1):
     if 'distance_alert' in rect:
         if rect['distance_alert'] == 1:
-            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (255, 0, 0), thickness)
+            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 0, 255), thickness)
+            cv2.circle(img, (rect['center']['x'],rect['center']['y']), 2, (0, 0, 255), thickness)
+            if 'line' in rect:
+                cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), (0, 0, 255), thickness)
         else:
             cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
     else:

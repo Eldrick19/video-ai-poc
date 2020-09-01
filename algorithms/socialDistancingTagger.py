@@ -54,6 +54,8 @@ def tag_social_distancing(detections, dim):
                     distance_between_points = math.sqrt(pow((person_1_center_x-person_2_center_x),2)+pow((person_1_center_y-person_2_center_y),2))
                     if distance_between_points <= person_1_height:
                         rectangle_to_compare_1["distance_alert"], rectangle_to_compare_2["distance_alert"] = 1, 1
+                        rectangle_to_compare_1["center"], rectangle_to_compare_2["center"] = {"x":int(person_1_center_x),"y":int(person_1_center_y)}, {"x":int(person_2_center_x),"y":int(person_2_center_y)}
+                        rectangle_to_compare_1["line"] = {"x1":int(person_1_center_x),"y1":int(person_1_center_y),"x2":int(person_2_center_x),"y2":int(person_2_center_y)}
                     else:
                         if "distance_alert" not in rectangle_to_compare_1:
                             rectangle_to_compare_1["distance_alert"] = 0

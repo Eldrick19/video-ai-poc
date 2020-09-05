@@ -5,7 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.duration_pb2 import Duration
 
 
-def detect_person(video_path, storage_online, do_segments=False):
+def detect_person(video_path, storage_online, do_segments=False, log=False):
     """Detects people in a video."""
 
     client = videointelligence.VideoIntelligenceServiceClient()
@@ -70,30 +70,31 @@ def detect_person(video_path, storage_online, do_segments=False):
     # Retrieve the first result, because a single video was processed.
     annotation_result = result.annotation_results[0]
     person_tracking_array = []
+    detection_id = 0
+
     for annotation in annotation_result.person_detection_annotations:
-        print("Person detected:")
+        if log: print("Person detected:")
         for track in annotation.tracks:
             # Obtain segment start and end times
-            start = track.segment.start_time_offset.seconds + track.segment.start_time_offset.nanos / 1e9
-            end = track.segment.end_time_offset.seconds + track.segment.end_time_offset.nanos / 1e9
-            print(
-                "Segment: {}s to {}s".format(
-                    start,
-                    end,
-                )
-            )
+            start= track.segment.start_time_offset.seconds + track.segment.start_time_offset.nanos / 1e9
+            end= track.segment.end_time_offset.seconds + track.segment.end_time_offset.nanos / 1e9
+            if log: print("Segment: {}s to {}s".format(start,end))
             # Each segment includes timestamped objects that include
             # characteristics - -e.g.clothes, posture of the person detected.
             # Grab the first timestamped object
-            timestamped_object = track.timestamped_objects[0]
-            box = timestamped_object.normalized_bounding_box
-            print("Bounding box:")
-            print("\tleft  : {}".format(box.left))
-            print("\ttop   : {}".format(box.top))
-            print("\tright : {}".format(box.right))
-            print("\tbottom: {}".format(box.bottom))
+            for frame in track.timestamped_objects:
+                frame_s = frame.time_offset.seconds + frame.time_offset.nanos / 1e9
+                box = frame.normalized_bounding_box
+                if log:
+                    print("Bounding box:")
+                    print("\tleft  : {}".format(box.left))
+                    print("\ttop   : {}".format(box.top))
+                    print("\tright : {}".format(box.right))
+                    print("\tbottom: {}".format(box.bottom))
+                
+                person_tracking_array.append([detection_id, frame_s, box.left, box.top, box.right, box.bottom])
             
-            person_tracking_array.append([start, end, box.left, box.top, box.right, box.bottom])
+            detection_id+=1
 
     return person_tracking_array
 

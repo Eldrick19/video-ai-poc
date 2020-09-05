@@ -11,51 +11,32 @@ def get_video_data(video_path):
     return fps, frame_count, video_dimensions
 
 # Called to add a detection (in the form of a rectangle) to the list of detections that will be 'drawn' on a frame
-def add_detections(rectangles, dc, fc, df, dim):
-    if round(df.loc[dc,'start_f']) == fc:
-        rectangle = {
-            "dc": dc,
-            "left": round(df.loc[dc, 'left']*dim[0]),
-            "top": round(df.loc[dc, 'top']*dim[1]),
-            "right": round(df.loc[dc, 'right']*dim[0]),
-            "bottom": round(df.loc[dc, 'bottom']*dim[1]),
-            "end": df.loc[dc, 'end_f']
-        }
-        
-        rectangles.append(rectangle)
-        dc += 1
-
-        rectangles, dc = add_detections(rectangles, dc, fc, df, dim)
-
-    return rectangles, dc
+def add_detection(rect_data, dim):
+    rectangle = {
+        "d_id": int(rect_data['d_id']),
+        "left": round(rect_data['left']*dim[0]),
+        "top": round(rect_data['top']*dim[1]),
+        "right": round(rect_data['right']*dim[0]),
+        "bottom": round(rect_data['bottom']*dim[1]),
+    }
+    
+    return rectangle
 
 
-def detections_at_each_frame(video_path, df, fps, frame_count, dim):
+def detections_at_each_frame(df, frame_count, dim, log=False):
     # Defining of variables
-    fc, dc = 0, 0 # Frame Counter and Detection Counter, respectively
-    rectangles = []
+    fc, dc = 0, 0 # Frame Counter, Detection Counter Min, Detection Counter Max, and Unique ID, respectively
     detections_per_frame = []
-
-    print(frame_count)
-    while(fc <= frame_count):
-        # Add detections to list of detections to display
-        if dc <= len(df.index):
-            try:
-                rectangles, dc = add_detections(rectangles, dc, fc, df, dim)
-            except:
-                print('Arrived at last detection.')
+    while(fc <= frame_count):   
+        if log: print('\nOn Frame: ', fc, '| On Detection: ', dc,)
+        if dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
+            rectangles=[]
+            while dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
+                rect_data = df.iloc[dc]
+                rectangles.append(add_detection(rect_data, dim))
+                dc+=1
+            detections_per_frame.append([fc, rectangles])
         else:
-            print('Arrived at last detection.')
+            fc+=1
 
-        # For each detection in list of detections to display do the following:
-        # (1) Check if that detection has ended, if so remove it from list of detections to display
-        # (2) Add detections to the detection_pr_frame list
-        for rectangle in rectangles:
-            if rectangle['dc'] <= dc and round(rectangle['end']) == fc:
-                rectangles.remove(rectangle)
-                continue
-            detections_per_frame.append([fc, rectangle]) # Note that the 0 is to initialize the social distancing variable. See socialDistancingTagger.py in the algorithms folder for more information
-        
-        fc += 1
-    print(detections_per_frame)
     return detections_per_frame

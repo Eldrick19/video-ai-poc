@@ -4,19 +4,26 @@ import cv2
 
 # Called to draw out detection box (rectangle) given image dimensions and box metrics
 def draw_rectangle(img, rect, dim, thickness = 1):
+    
+    red, green, blue = (0, 0, 255), (0, 255, 0), (255, 0, 0)
+
     if 'distance_alert' in rect:
         if rect['distance_alert'] == 1:
-            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 0, 255), thickness)
-            cv2.circle(img, (rect['center']['x'],rect['center']['y']), 2, (0, 0, 255), thickness)
+            color=red
+            cv2.circle(img, (rect['center']['x'],rect['center']['y']), 2, color, thickness)
             if 'line' in rect:
-                cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), (0, 0, 255), thickness)
+                cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), color, thickness)
         else:
-            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
+            color=green
+            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), color, thickness)
     else:
-        cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
+        color=green
+    
+    cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), color, thickness)
+    cv2.putText(img, 'ID: '+str(rect['d_id']), (rect['left'], rect['top']+15), cv2.FONT_HERSHEY_SIMPLEX,  0.5, color, 2)
 
 # Called to draw detections
-def draw_detections(video_path, output_path, detections, fps, dim):
+def draw_detections(video_path, output_path, detections, fps, dim, log=False):
     # Defining of variables
     cap=cv2.VideoCapture(''.join(video_path))
     fc= 0 # Frame Counter and Detection Counter, respectively
@@ -30,15 +37,14 @@ def draw_detections(video_path, output_path, detections, fps, dim):
         if ret:
 
             if fc in detections:
-                print('Show # of Rectangles: ', len(detections[fc]))
+                if log: print('Show # of Rectangles: ', len(detections[fc]))
                 for rectangle in detections[fc]:
                     draw_rectangle(frame, rectangle, dim)
             else:
-                print('Show # of Rectangles: ', 0)
+                if log: print('Show # of Rectangles: ', 0)
             
             cv2.imshow('feed',frame)
             out.write(frame)
-            print('FC: ', fc) 
             fc += 1       
             if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
@@ -47,6 +53,5 @@ def draw_detections(video_path, output_path, detections, fps, dim):
     
     cap.release()
     out.release()
-    cv2.destroyAllWindows() 
-    print('Done')
+    cv2.destroyAllWindows()
 

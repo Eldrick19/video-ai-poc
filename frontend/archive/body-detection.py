@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import sys
 import math
+import time
 
 
 def inside(r, q):
@@ -48,7 +49,6 @@ def tag_social_distancing(detections, dim):
                 person_1_center_y = rectangle_to_compare_1["top"] + abs(rectangle_to_compare_1["top"]-rectangle_to_compare_1["bottom"])/2
                 
                 while comparison_index < len(rectangles): # Nested loop, compares all other detections in a frame to the 1st one. 
-                    #print('\nComparing rectangle 1 ', rectangles[rectangle_index]["dc"], ' with 2 ', rectangles[comparison_index]["dc"])
                     rectangle_to_compare_2 = rectangles[comparison_index]
                     percent_of_video_area_2 = (rectangle_to_compare_2["left"]*rectangle_to_compare_2["bottom"])/video_area
                     person_2_center_x = rectangle_to_compare_2["left"] + abs(rectangle_to_compare_2["left"]-rectangle_to_compare_2["right"])/2
@@ -91,28 +91,34 @@ def tag_social_distancing(detections, dim):
 video_name = sys.argv[1]
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector( cv2.HOGDescriptor_getDefaultPeopleDetector() )
-cap=cv2.VideoCapture('C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/input/'+video_name+'.mp4')
+cap=cv2.VideoCapture('C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/input/'+video_name+'.mp4')
 fps = cap.get(cv2.CAP_PROP_FPS)
 dim = [cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)]
 fc = 0
 detections = []
+# Draw every X seconds
+x, i, fc = 1, 0, 0
 print('\nGetting Boxes at each Frame...\n')
 while True:
     ret,frame=cap.read()
+    #print('\nFC: \n', fc)
     if ret:
-        rectangles = []
-        found,w=hog.detectMultiScale(frame, winStride=(8,8), padding=(32,32), scale=1.05)
-        if len(found) > 0:
-            for detection in found:
-                rectangle = {
-                    "left": detection[0],
-                    "top": detection[1],
-                    "right": detection[2],
-                    "bottom": detection[3],
-                }
-                print(rectangle["left"], type(rectangle["left"]))
-                detections.append([fc, rectangle])
-        
+        if round(x*fps*i) == fc:
+            rectangles = []
+            print('Drawing for frame ', fc)
+            found,w=hog.detectMultiScale(frame, winStride=(8,8), padding=(32,32), scale=1.05)
+            draw_detections(frame,found)
+            i+=1
+            if len(found) > 0:
+                for detection in found:
+                    rectangle = {
+                        "left": detection[0],
+                        "top": detection[1],
+                        "right": detection[0]+detection[2],
+                        "bottom": detection[1]+detection[3],
+                    }
+                    print(rectangle["left"], rectangle["top"], rectangle["right"], rectangle["bottom"])
+                    detections.append([fc, rectangle])
         fc+=1
         ch = 0xFF & cv2.waitKey(1)
         if ch == 27:
@@ -137,9 +143,9 @@ def draw_rectangle(img, rect, dim, thickness = 1):
             if 'line' in rect:
                 cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), (0, 0, 255), thickness)
         else:
-            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
+            cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (255, 0, 0), thickness)
     else:
-        cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (0, 255, 0), thickness)
+        cv2.rectangle(img, (rect['left'], rect['top']), (rect['right'], rect['bottom']), (255, 0, 0), thickness)
 
 # Called to draw detections
 def draw_detections_2(video_path, output_path, detections, fps, dim):
@@ -150,22 +156,32 @@ def draw_detections_2(video_path, output_path, detections, fps, dim):
     out = cv2.VideoWriter(''.join(output_path), cv2.VideoWriter_fourcc(*"MJPG"), fps, (int(dim[0]),int(dim[1])))
 
     # Loop through video capture and draw detections
+    # Draw every X seconds
+    x, i, fc = 1, 0, 0  
+    frame_wait = None
     while(cap.isOpened()):
         ret,frame=cap.read() 
 
         if ret:
-            if fc in detections:
-                print('Show # of Rectangles: ', len(detections[fc]))
-                for rectangle in detections[fc]:
-                    draw_rectangle(frame, rectangle, dim)
-            else:
-                print('Show # of Rectangles: ', 0)
+            if round(x*fps*i) == fc:
+                frame_wait = fc+1
+                if fc in detections:
+                    print('Drawing for frame ', fc)
+                    print('Show # of Rectangles: ', len(detections[fc]))
+                    for rectangle in detections[fc]:
+                        draw_rectangle(frame, rectangle, dim)
+                i+=1
             
+            if fc == frame_wait:
+                j=0
+                while j < 200:
+                    cv2.imshow('feed',frame)
+                    out.write(frame)
+                    j+=1 
             cv2.imshow('feed',frame)
             out.write(frame)
-            print('FC: ', fc) 
             fc += 1       
-            if cv2.waitKey(10) & 0xFF == ord('q'):
+            if cv2.waitKey(50) & 0xFF == ord('q'):
                     break
         else:
             break
@@ -175,9 +191,10 @@ def draw_detections_2(video_path, output_path, detections, fps, dim):
     cv2.destroyAllWindows() 
     print('Done')
 
-video_path = ['C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/input/', video_name + '.mp4']
-output_path = ['C:/Users/eldrick.wega/Documents/video_ai_project/technical_files/videos/output/', video_name + '-2.avi']
+video_path = ['C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/input/', video_name + '.mp4']
+output_path = ['C:/Users/eldri/Documents/GitHub/video-ai-poc/videos/output/', video_name + '-HOG.avi']
 
+input('Start video?\n')
 draw_detections_2(video_path,output_path, frame_detections, fps, dim)
 
 #draw_detections(frame,found)

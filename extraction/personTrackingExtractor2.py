@@ -5,7 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.duration_pb2 import Duration
 
 
-def detect_person(video_path, storage_online, do_segments=False):
+def detect_person(video_path, storage_online, do_segments=False, log=False):
     """Detects people in a video."""
 
     client = videointelligence.VideoIntelligenceServiceClient()
@@ -70,39 +70,44 @@ def detect_person(video_path, storage_online, do_segments=False):
     # The first result is retrieved because a single video was processed.
     object_annotations = result.annotation_results[0].object_annotations
     person_tracking_array = []
-    # Get only the first annotation for demo purposes.
+    detection_id = 0
+    
     for object_annotation in object_annotations:
         if object_annotation.entity.description == 'person' and object_annotation.entity.entity_id:
-            print("Entity description: {}".format(object_annotation.entity.description))
-            print("Entity id: {}".format(object_annotation.entity.entity_id))
             # Obtain segment start and end times
             start = object_annotation.segment.start_time_offset.seconds + object_annotation.segment.start_time_offset.nanos / 1e9
             end = object_annotation.segment.end_time_offset.seconds + object_annotation.segment.end_time_offset.nanos / 1e9
-            print(
-                "Segment: {}s to {}s".format(
-                    start,
-                    end,
+            if log: 
+                print("Entity description: {}".format(object_annotation.entity.description))
+                print("Entity id: {}".format(object_annotation.entity.entity_id))
+                print(
+                    "Segment: {}s to {}s".format(
+                        start,
+                        end,
+                    )
                 )
-            )
 
-            print("Confidence: {}".format(object_annotation.confidence))
+                print("Confidence: {}".format(object_annotation.confidence))
 
             # Here we print only the bounding box of the first frame in this segment
-            frame = object_annotation.frames[0]
-            box = frame.normalized_bounding_box
-            print(
-                "Time offset of the first frame: {}s".format(
-                    frame.time_offset.seconds + frame.time_offset.nanos / 1e9
-                )
-            )
-            print("Bounding box position:")
-            print("\tleft  : {}".format(box.left))
-            print("\ttop   : {}".format(box.top))
-            print("\tright : {}".format(box.right))
-            print("\tbottom: {}".format(box.bottom))
-            print("\n")
+            for frame in object_annotation.frames:
+                box = frame.normalized_bounding_box
+                frame_s = frame.time_offset.seconds + frame.time_offset.nanos / 1e9
+                if log: 
+                    print(
+                        "Frame time offset: {}s".format(
+                            frame.time_offset.seconds + frame.time_offset.nanos / 1e9
+                        )
+                    )
+                    print("Bounding box position:")
+                    print("\tleft  : {}".format(box.left))
+                    print("\ttop   : {}".format(box.top))
+                    print("\tright : {}".format(box.right))
+                    print("\tbottom: {}".format(box.bottom))
 
-            person_tracking_array.append([start, end, box.left, box.top, box.right, box.bottom])
+                person_tracking_array.append([detection_id, frame_s, box.left, box.top, box.right, box.bottom])
+            
+            detection_id+=1
 
     return person_tracking_array
 

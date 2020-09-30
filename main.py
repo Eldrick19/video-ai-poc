@@ -16,7 +16,7 @@ import time
 
 
 
-def social_distancing_detection(video_name, storage_online, call):
+def social_distancing_detection(video_name, storage_online, call, blur_faces):
     # Define important variables
     if storage_online: # Get video files from Cloud Storage
         print('\nYou decided to pull video from from Cloud Storage.')
@@ -62,8 +62,6 @@ def social_distancing_detection(video_name, storage_online, call):
         else: # EXTRACTION - If it has already been extracted, just get from saved data
             print('\nData already extracted for this video using the '+call+' call. No need to call API.')
 
-
-
     # EXTRACTION - Perform light data manipulation
     start_time = time.time()
     detection_df = detection_df.sort_values(by=['start_s']) # Sort by Start time
@@ -78,7 +76,7 @@ def social_distancing_detection(video_name, storage_online, call):
     if storage_online == False:
         data_runtime = time.time() - start_time
         runtime_df = runtime_df.append({'function': 'data_manipulation', 'runtime_s': data_runtime}, ignore_index=True)
-
+    detection_interval = frameBoxesExtractor.detection_frame_interval(detections_per_frame)
 
     # ALGORITHMS - Highlight all instances of non social distancing
     print('\nRunning social distanding algorithms...')
@@ -91,7 +89,7 @@ def social_distancing_detection(video_name, storage_online, call):
     # FRONTEND - Display person tracking
     print('\nDisplaying Results...')
     start_time = time.time()
-    outputVisualizer.draw_detections(video_path, output_path, frame_detections, fps, video_dimensions)
+    outputVisualizer.draw_detections(video_path, output_path, frame_detections, fps, video_dimensions, detection_interval, blur_faces)
     if storage_online == False:
         output_runtime = time.time() - start_time
         runtime_df = runtime_df.append({'function': 'video_output', 'runtime_s': output_runtime}, ignore_index=True)
@@ -118,4 +116,5 @@ else:
     video_name = 'one-by-one-person-detection'
     storage_online = True
 
-social_distancing_detection(video_name, storage_online, 'PERSON_DETECTION')
+
+social_distancing_detection(video_name, storage_online, 'PERSON_DETECTION', blur_faces=True)

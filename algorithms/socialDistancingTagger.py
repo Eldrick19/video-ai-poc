@@ -43,9 +43,10 @@ def tag_social_distancing(detections, dim, log=False):
                     print('Person 2 area: ', ((rectangle_to_compare_2["right"]-rectangle_to_compare_2["left"])*(rectangle_to_compare_2["bottom"]-rectangle_to_compare_2["top"])), ' | Percent: ', percent_of_video_area_2)
                     print('Video Area: ', video_area)
 
-                #person_1_height = rectangle_to_compare_1["bottom"]-rectangle_to_compare_1["top"]
-                #person_2_height = rectangle_to_compare_2["bottom"]-rectangle_to_compare_2["top"]
-                if (person_1_area/person_2_area) >= 66.67 or (person_1_area/person_2_area) <= 0.6667: # If video area percentage difference is too large
+                person_1_height = rectangle_to_compare_1["bottom"]-rectangle_to_compare_1["top"]
+                person_2_height = rectangle_to_compare_2["bottom"]-rectangle_to_compare_2["top"]
+                heights = [person_1_height, person_2_height]
+                if (min(heights)/max(heights)) <= 0.70:  # If video area percentage difference is too large
                     comparison_index+=1
                     if log:
                         print('Difference between boxes too large')

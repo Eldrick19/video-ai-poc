@@ -22,6 +22,9 @@ def add_detection(rect_data, dim):
     
     return rectangle
 
+def detection_frame_interval(detections_per_frame):
+    interval = detections_per_frame[1][0] - detections_per_frame[0][0]
+    return interval
 
 def detections_at_each_frame(df, frame_count, dim, log=False):
     # Defining of variables

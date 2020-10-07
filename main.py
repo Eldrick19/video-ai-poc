@@ -4,10 +4,9 @@
 
 # Import Libraries
 from google.cloud import videointelligence_v1p3beta1 as videointelligence
-from extraction import personTrackingExtractor, personTrackingExtractor2, frameBoxesExtractor
+from extraction import personTrackingExtractor, personTrackingExtractor2, personTrackingExtractor3, frameBoxesExtractor
 from algorithms import socialDistancingTagger
 from frontend import outputVisualizer
-from infrastructure import tools
 from pathlib import Path
 import pandas as pd
 import openpyxl
@@ -29,44 +28,31 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
         output_path = ['videos/output/', video_name + '.avi']
         data_path = ['videos/data/', video_name + '.xlsx']
 
-    if not Path(''.join(data_path)).is_file():
-        # EXTRACTION - Extract person tracking data using Google API
-        print('\nCalling Video Intelligence API with feature '+call+'...')
-        start_time = time.time()
-        if call == 'PERSON_DETECTION':
-            person_tracking_array = personTrackingExtractor.detect_person(video_path, storage_online)
-        elif call == 'OBJECT_TRACKING':
-            person_tracking_array = personTrackingExtractor2.detect_person(video_path, storage_online)
-        detection_df = pd.DataFrame(person_tracking_array, columns=['d_id','start_s', 'left', 'top', 'right', 'bottom'])
-        detection_df.to_excel(''.join(data_path),sheet_name='0')  # Exporting dataframe to CSV
-        # Save runtime data
-        if storage_online == False:
-            api_runtime = time.time() - start_time
-            runtime_df = pd.DataFrame(columns=['function', 'runtime_s'])
-            runtime_df = runtime_df.append({'function': 'api_call_'+call, 'runtime_s': api_runtime}, ignore_index=True)              
-    else:
-        detection_df = pd.read_excel(''.join(data_path),sheet_name='0')
-        runtime_df = pd.read_excel(''.join(data_path),sheet_name='1')
-        if 'api_call_'+call not in list(runtime_df['function']): # EXTRACTION - Data has already been extracted but not using the new call
-            print('\nData already extracted for this video, but not using the '+call+' call. Calling Video Intelligence API with feature '+call+'...')
-            start_time = time.time()
-            if call == 'PERSON_DETECTION':
-                person_tracking_array = personTrackingExtractor.detect_person(video_path, storage_online)
-            elif call == 'OBJECT_TRACKING':
-                person_tracking_array = personTrackingExtractor2.detect_person(video_path, storage_online)
-            detection_df = pd.read_excel(''.join(data_path),sheet_name='0')
-            if storage_online == False:
-                api_runtime = time.time() - start_time
-                runtime_df = pd.read_excel(''.join(data_path),sheet_name='1')
-                runtime_df = runtime_df.append({'function': 'api_call_'+call, 'runtime_s': api_runtime}, ignore_index=True) 
-        else: # EXTRACTION - If it has already been extracted, just get from saved data
-            print('\nData already extracted for this video using the '+call+' call. No need to call API.')
+    fps, frame_count, video_dimensions = frameBoxesExtractor.get_video_data(video_path)
+
+    # EXTRACTION - Extract person tracking data using Google API
+    print('\nCalling Video Intelligence API with feature '+call+'...')
+    start_time = time.time()
+    if call == 'PERSON_DETECTION':
+        person_tracking_array = personTrackingExtractor.detect_person(video_path, storage_online)
+    elif call == 'OBJECT_TRACKING':
+        person_tracking_array = personTrackingExtractor2.detect_person(video_path, storage_online)
+    elif call == 'HOG_OPENCV':
+        person_tracking_array = personTrackingExtractor3.detect_person(video_path, fps, video_dimensions)
+    detection_df = pd.DataFrame(person_tracking_array, columns=['d_id','start_s', 'left', 'top', 'right', 'bottom'])
+    detection_df.to_excel(''.join(data_path),sheet_name='0')  # Exporting dataframe to CSV
+    # Save runtime data
+    if storage_online == False:
+        api_runtime = time.time() - start_time
+        runtime_df = pd.DataFrame(columns=['function', 'runtime_s'])
+        runtime_df = runtime_df.append({'function': 'api_call_'+call, 'runtime_s': api_runtime}, ignore_index=True)              
+
+    print(detection_df)
 
     # EXTRACTION - Perform light data manipulation
     start_time = time.time()
     detection_df = detection_df.sort_values(by=['start_s']) # Sort by Start time
     detection_df = detection_df.reset_index(drop=True)
-    fps, frame_count, video_dimensions = frameBoxesExtractor.get_video_data(video_path)
     detection_df['start_s'] = detection_df['start_s'].multiply(fps) # Convert to frames
     detection_df.rename(columns={"start_s": "start_f"}, inplace=True) # Rename columns to describe fps
 
@@ -117,4 +103,4 @@ else:
     storage_online = True
 
 
-social_distancing_detection(video_name, storage_online, 'PERSON_DETECTION', blur_faces=True)
+social_distancing_detection(video_name, storage_online, 'HOG_OPENCV', blur_faces=True)

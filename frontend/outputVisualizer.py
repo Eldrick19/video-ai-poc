@@ -58,7 +58,7 @@ def draw_rectangle(img, rect, dim, thickness = 8):
 def draw_detections(video_path, output_path, detections, fps, dim, detection_interval, blur_faces, log=False):
     # Definition of variables
     cap=cv2.VideoCapture(''.join(video_path))
-    fc= 0 # Frame counter
+    fc, dc = 0, 0 # Frame counter and detections counter
     out = cv2.VideoWriter(''.join(output_path), cv2.VideoWriter_fourcc(*"MJPG"), 15, (int(dim[0]),int(dim[1])))
     pixelations = []
 
@@ -67,14 +67,13 @@ def draw_detections(video_path, output_path, detections, fps, dim, detection_int
         ret,frame=cap.read() 
 
         if ret:
-
-            if fc in detections:
-                if log: print('Show # of Rectangles: ', len(detections[fc]))
-                for rectangle in detections[fc]:
-                    if blur_faces: pixelations = anonymize_detection_pixelate(pixelations, frame, rectangle, fc, 3)
-                    draw_rectangle(frame, rectangle, dim)
-            else:
-                if log: print('Show # of Rectangles: ', 0)
+            df = 0
+            while dc < len(detections) and fc == detections[dc]['frame']:
+                if blur_faces: pixelations = anonymize_detection_pixelate(pixelations, frame, detections[dc], fc, 3)
+                draw_rectangle(frame, detections[dc], dim)
+                dc += 1
+                df += 1
+            if log: print('Show # of Rectangles: ', df)
 
             if blur_faces: 
                 for p in pixelations:

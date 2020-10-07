@@ -11,8 +11,9 @@ def get_video_data(video_path):
     return fps, frame_count, video_dimensions
 
 # Called to add a detection (in the form of a rectangle) to the list of detections that will be 'drawn' on a frame
-def add_detection(rect_data, dim):
+def add_detection(rect_data, fc, dim):
     rectangle = {
+        "frame": round(fc),
         "d_id": int(rect_data['d_id']),
         "left": round(rect_data['left']*dim[0]),
         "top": round(rect_data['top']*dim[1]),
@@ -22,24 +23,25 @@ def add_detection(rect_data, dim):
     
     return rectangle
 
-def detection_frame_interval(detections_per_frame):
-    interval = detections_per_frame[1][0] - detections_per_frame[0][0]
+def detection_frame_interval(detections):
+    i=0
+    while detections[i]['frame'] == detections[0]['frame']:
+        i+=1
+    interval = detections[i]['frame'] - detections[0]['frame']
     return interval
 
 def detections_at_each_frame(df, frame_count, dim, log=False):
     # Defining of variables
     fc, dc = 0, 0 # Frame Counter, Detection Counter Min, Detection Counter Max, and Unique ID, respectively
-    detections_per_frame = []
+    frame_detections = []
     while(fc <= frame_count):   
         if log: print('\nOn Frame: ', fc, '| On Detection: ', dc,)
         if dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
-            rectangles=[]
             while dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
                 rect_data = df.iloc[dc]
-                rectangles.append(add_detection(rect_data, dim))
+                frame_detections.append(add_detection(rect_data, fc, dim))
                 dc+=1
-            detections_per_frame.append([fc, rectangles])
         else:
             fc+=1
 
-    return detections_per_frame
+    return frame_detections

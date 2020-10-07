@@ -6,6 +6,7 @@
 from google.cloud import videointelligence_v1p3beta1 as videointelligence
 from extraction import personTrackingExtractor, personTrackingExtractor2, personTrackingExtractor3, frameBoxesExtractor
 from algorithms import socialDistancingTagger
+from data import bqJobHelper
 from frontend import outputVisualizer
 from pathlib import Path
 import pandas as pd
@@ -58,19 +59,26 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
 
     # EXTRACTION - Perform heavier data manipulation. Gets all bounding boxes to be displayed at each frame
     print('\nHeavy data manipulation (bounding box at each frame)...')
-    detections_per_frame = frameBoxesExtractor.detections_at_each_frame(detection_df, frame_count, video_dimensions)
+    frame_detections = frameBoxesExtractor.detections_at_each_frame(detection_df, frame_count, video_dimensions)
     if storage_online == False:
         data_runtime = time.time() - start_time
         runtime_df = runtime_df.append({'function': 'data_manipulation', 'runtime_s': data_runtime}, ignore_index=True)
-    detection_interval = frameBoxesExtractor.detection_frame_interval(detections_per_frame)
-
+    detection_interval = frameBoxesExtractor.detection_frame_interval(frame_detections)
+    
     # ALGORITHMS - Highlight all instances of non social distancing
     print('\nRunning social distanding algorithms...')
     start_time = time.time()
-    frame_detections = socialDistancingTagger.tag_social_distancing(detections_per_frame, video_dimensions)
+    frame_detections = socialDistancingTagger.tag_social_distancing(frame_detections, video_dimensions)
     if storage_online == False:
         algo_runtime = time.time() - start_time
         runtime_df = runtime_df.append({'function': 'distancing_algorithms', 'runtime_s': algo_runtime}, ignore_index=True)
+
+    # DATA - Persist the social distancing data to BigQuery
+    print('\nSaving social distancing data to the Cloud...')
+    for detection in frame_detections:
+        detection['video_name'] = video_name
+    sd_df = pd.DataFrame(frame_detections)
+    bqJobHelper.push_to_bq(sd_df)
 
     # FRONTEND - Display person tracking
     print('\nDisplaying Results...')
@@ -91,7 +99,7 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
     print('\nDone.\n')
 
     # Return just an output for now
-    return 'Video should be uploaded to GitHub...'
+    return 'Video should be uploaded...'
 
 
 # Call the funtion

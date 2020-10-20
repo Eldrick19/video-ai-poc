@@ -30,7 +30,7 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
         data_path = ['videos/data/', video_name + '.xlsx']
 
     fps, frame_count, video_dimensions = frameBoxesExtractor.get_video_data(video_path)
-
+  
     # EXTRACTION - Extract person tracking data using Google API
     print('\nCalling Video Intelligence API with feature '+call+'...')
     start_time = time.time()
@@ -48,8 +48,6 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
         runtime_df = pd.DataFrame(columns=['function', 'runtime_s'])
         runtime_df = runtime_df.append({'function': 'api_call_'+call, 'runtime_s': api_runtime}, ignore_index=True)              
 
-    print(detection_df)
-
     # EXTRACTION - Perform light data manipulation
     start_time = time.time()
     detection_df = detection_df.sort_values(by=['start_s']) # Sort by Start time
@@ -59,11 +57,12 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
 
     # EXTRACTION - Perform heavier data manipulation. Gets all bounding boxes to be displayed at each frame
     print('\nHeavy data manipulation (bounding box at each frame)...')
-    frame_detections = frameBoxesExtractor.detections_at_each_frame(detection_df, frame_count, video_dimensions)
+    frame_detections = frameBoxesExtractor.detections_at_each_frame(detection_df, frame_count, video_dimensions, fps)
     if storage_online == False:
         data_runtime = time.time() - start_time
         runtime_df = runtime_df.append({'function': 'data_manipulation', 'runtime_s': data_runtime}, ignore_index=True)
-    detection_interval = frameBoxesExtractor.detection_frame_interval(frame_detections)
+
+    detection_interval = frameBoxesExtractor.detection_frame_interval(frame_detections, call)
     
     # ALGORITHMS - Highlight all instances of non social distancing
     print('\nRunning social distanding algorithms...')

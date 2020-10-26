@@ -10,11 +10,8 @@ from data import bqJobHelper
 from frontend import outputVisualizer
 from pathlib import Path
 import pandas as pd
-import openpyxl
 import sys
 import time
-
-
 
 def social_distancing_detection(video_name, storage_online, call, blur_faces):
     # Define important variables
@@ -41,12 +38,7 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
     elif call == 'HOG_OPENCV':
         person_tracking_array = personTrackingExtractor3.detect_person(video_path, fps, video_dimensions)
     detection_df = pd.DataFrame(person_tracking_array, columns=['d_id','start_s', 'left', 'top', 'right', 'bottom'])
-    detection_df.to_excel(''.join(data_path),sheet_name='0')  # Exporting dataframe to CSV
-    # Save runtime data
-    if storage_online == False:
-        api_runtime = time.time() - start_time
-        runtime_df = pd.DataFrame(columns=['function', 'runtime_s'])
-        runtime_df = runtime_df.append({'function': 'api_call_'+call, 'runtime_s': api_runtime}, ignore_index=True)              
+    detection_df.to_excel(''.join(data_path),sheet_name='0')  # Exporting dataframe to CSV            
 
     # EXTRACTION - Perform light data manipulation
     start_time = time.time()
@@ -58,19 +50,12 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
     # EXTRACTION - Perform heavier data manipulation. Gets all bounding boxes to be displayed at each frame
     print('\nHeavy data manipulation (bounding box at each frame)...')
     frame_detections = frameBoxesExtractor.detections_at_each_frame(detection_df, frame_count, video_dimensions, fps)
-    if storage_online == False:
-        data_runtime = time.time() - start_time
-        runtime_df = runtime_df.append({'function': 'data_manipulation', 'runtime_s': data_runtime}, ignore_index=True)
-
     detection_interval = frameBoxesExtractor.detection_frame_interval(frame_detections, call)
     
     # ALGORITHMS - Highlight all instances of non social distancing
     print('\nRunning social distanding algorithms...')
     start_time = time.time()
     frame_detections = socialDistancingTagger.tag_social_distancing(frame_detections, video_dimensions)
-    if storage_online == False:
-        algo_runtime = time.time() - start_time
-        runtime_df = runtime_df.append({'function': 'distancing_algorithms', 'runtime_s': algo_runtime}, ignore_index=True)
 
     # DATA - Persist the social distancing data to BigQuery
     print('\nSaving social distancing data to the Cloud...')
@@ -83,23 +68,11 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
     print('\nDisplaying Results...')
     start_time = time.time()
     outputVisualizer.draw_detections(video_path, output_path, frame_detections, fps, video_dimensions, detection_interval, blur_faces)
-    if storage_online == False:
-        output_runtime = time.time() - start_time
-        runtime_df = runtime_df.append({'function': 'video_output', 'runtime_s': output_runtime}, ignore_index=True)
-
-    if storage_online == False:
-        excelBook = openpyxl.load_workbook(''.join(data_path))
-        with pd.ExcelWriter(''.join(data_path), engine='openpyxl') as writer:
-            writer.book = excelBook
-            writer.sheets = dict((ws.title, ws) for ws in excelBook.worksheets)
-            runtime_df.to_excel(writer,'1', index=False)
-            writer.save()
 
     print('\nDone.\n')
 
     # Return just an output for now
     return 'Video should be uploaded...'
-
 
 # Call the funtion
 if len(sys.argv) > 1:
@@ -108,6 +81,5 @@ if len(sys.argv) > 1:
 else:
     video_name = 'one-by-one-person-detection'
     storage_online = True
-
 
 social_distancing_detection(video_name, storage_online, 'HOG_OPENCV', blur_faces=True)

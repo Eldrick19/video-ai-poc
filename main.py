@@ -4,6 +4,7 @@
 
 # Import Libraries
 from google.cloud import videointelligence_v1p3beta1 as videointelligence
+from storage import videoDownloader, videoUploader
 from extraction import personTrackingExtractor, personTrackingExtractor2, personTrackingExtractor3, frameBoxesExtractor
 from algorithms import socialDistancingTagger
 from data import bqJobHelper
@@ -15,33 +16,29 @@ import time
 
 def social_distancing_detection(video_name, storage_online, call, blur_faces):
     # Define important variables
-    if storage_online: # Get video files from Cloud Storage
+    video_path = ['videos/input/', video_name + '.mp4']
+    output_path = ['videos/output/', video_name + '.avi']
+
+    # STORAGE - Download video from Cloud Storage
+    if storage_online:
         print('\nYou decided to pull video from from Cloud Storage.')
-        video_path = ['gs://test-bucket-1997/input/', video_name + '.mp4']
-        output_path = ['videos/output/', video_name + '.avi']
-        data_path = ['videos/data/', video_name + '.xlsx']
-    else: # Get video files locally
+        videoDownloader.download_video(video_name)
+    else:
         print('\nYou decided to pull video locally from "videos/input/" folder.')
-        video_path = ['videos/input/', video_name + '.mp4']
-        output_path = ['videos/output/', video_name + '.avi']
-        data_path = ['videos/data/', video_name + '.xlsx']
 
     fps, frame_count, video_dimensions = frameBoxesExtractor.get_video_data(video_path)
   
     # EXTRACTION - Extract person tracking data using Google API
-    print('\nCalling Video Intelligence API with feature '+call+'...')
-    start_time = time.time()
+    print('\nCalling Person Tracking with feature '+call+'...')
     if call == 'PERSON_DETECTION':
         person_tracking_array = personTrackingExtractor.detect_person(video_path, storage_online)
     elif call == 'OBJECT_TRACKING':
         person_tracking_array = personTrackingExtractor2.detect_person(video_path, storage_online)
     elif call == 'HOG_OPENCV':
         person_tracking_array = personTrackingExtractor3.detect_person(video_path, fps, video_dimensions)
-    detection_df = pd.DataFrame(person_tracking_array, columns=['d_id','start_s', 'left', 'top', 'right', 'bottom'])
-    detection_df.to_excel(''.join(data_path),sheet_name='0')  # Exporting dataframe to CSV            
+    detection_df = pd.DataFrame(person_tracking_array, columns=['d_id','start_s', 'left', 'top', 'right', 'bottom'])       
 
     # EXTRACTION - Perform light data manipulation
-    start_time = time.time()
     detection_df = detection_df.sort_values(by=['start_s']) # Sort by Start time
     detection_df = detection_df.reset_index(drop=True)
     detection_df['start_s'] = detection_df['start_s'].multiply(fps) # Convert to frames
@@ -54,7 +51,6 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
     
     # ALGORITHMS - Highlight all instances of non social distancing
     print('\nRunning social distanding algorithms...')
-    start_time = time.time()
     frame_detections = socialDistancingTagger.tag_social_distancing(frame_detections, video_dimensions)
 
     # DATA - Persist the social distancing data to BigQuery
@@ -66,18 +62,17 @@ def social_distancing_detection(video_name, storage_online, call, blur_faces):
 
     # FRONTEND - Display person tracking
     print('\nDisplaying Results...')
-    start_time = time.time()
     outputVisualizer.draw_detections(video_path, output_path, frame_detections, fps, video_dimensions, detection_interval, blur_faces)
 
     print('\nDone.\n')
 
     # Return just an output for now
-    return 'Video should be uploaded...'
+    return 'Analyzed video should be saved...'
 
 # Call the funtion
 if len(sys.argv) > 1:
     video_name = sys.argv[1]
-    storage_online = False
+    storage_online = True
 else:
     video_name = 'one-by-one-person-detection'
     storage_online = True

@@ -2,6 +2,15 @@
 # Make sure the mp4 video in question is in the \videos\input folder
 # For example, a call could be 'python main.py sep-8-2011-propsal'
 
+#######################################################################
+# TURN ON OR OFF FUNCTION TAGS HERE
+#######################################################################
+
+storage_online = False
+blur_faces = True
+
+#######################################################################
+
 # Import Libraries
 from google.cloud import videointelligence_v1p3beta1 as videointelligence
 from storage import videoDownloader, videoUploader
@@ -14,14 +23,17 @@ import pandas as pd
 import sys
 import time
 
-def social_distancing_detection(video_name, call, blur_faces):
+def social_distancing_detection(video_name, call, storage_online, blur_faces):
     # Define important variables
     video_path = ['videos/input/', video_name + '.mp4']
     output_path = ['videos/output/', video_name + '_' + call + '.avi']
 
     # STORAGE - Download video from Cloud Storage
-    print('\nPulling video from Cloud Storage...')
-    videoDownloader.download_video(video_path)
+    if storage_online:
+        print('\nPulling video from Cloud Storage...')
+        videoDownloader.download_video(video_path)
+    else:
+        print('\nYou have decided to pull video locally from the "videos/input/" folder...')
 
     fps, frame_count, video_dimensions = frameBoxesExtractor.get_video_data(video_path) # Get video metadata
     video_already_analyzed = bqJobHelper.video_analyzed(video_name, call) # Verify if video has already been analyzed
@@ -79,7 +91,7 @@ if len(sys.argv) >= 3 and len(sys.argv) <= 4:
     calls = []
     for i in range(2,len(sys.argv)):
         call = sys.argv[i]
-        social_distancing_detection(video_name, call, blur_faces=True)
+        social_distancing_detection(video_name, call, storage_online, blur_faces)
         calls.append(call)
 else:
     print('Please make sure the format is as follows: "python main.py [VIDEO_NAME] [DETECTION_CALL_1] (optional)[DETECTION_CALL_2]"\n')

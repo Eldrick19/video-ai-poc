@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import cv2
+import json
 
 def anonymize_detection_pixelate(pixelations, frame, rect, fc, blocks=3):
     # Definition of variables
@@ -36,19 +37,16 @@ def draw_rectangle(img, rect, dim, thickness = 8):
     red, green, blue, white = (0, 0, 255), (0, 255, 0), (255, 0, 0), (255, 255, 255)
     left, right, top, bottom = rect['left'], rect['right'], rect['top'], rect['bottom']
     # If there is a "distance_alert" tag, the check if the alert tag is 'on'
+    color = green
     if 'distance_alert' in rect:
         # If tag = 1, then it is on. Draw it as a social distancing violation
         if rect['distance_alert'] == 1:
             color=red
-            cv2.circle(img, (rect['center']['x'],rect['center']['y']), 2, color, thickness)
-            if 'line' in rect:
-                cv2.line(img, (rect['line']['x1'], rect['line']['y1']), (rect['line']['x2'], rect['line']['y2']), color, thickness)
-        # If tag NOT 1, then it is off. Draw it as a normal detection
-        else:
-            color=green
-    # If no "distance_alert" tag, then draw as normal detection
-    else:
-        color=green
+            rect_center = json.loads(rect['center'])
+            cv2.circle(img, (rect_center['x'],rect_center['y']), 2, color, thickness)
+            if 'line' in rect and rect['line']:
+                rect_line = json.loads(rect['line'])
+                cv2.line(img, (rect_line['x1'], rect_line['y1']), (rect_line['x2'], rect_line['y2']), color, thickness)
     
     # Draw rectangle and ID
     cv2.rectangle(img, (left, top), (right, bottom), color, thickness)
@@ -79,13 +77,14 @@ def draw_detections(video_path, output_path, detections, fps, dim, detection_int
                 for p in pixelations:
                     if p['fc'] < fc-(detection_interval*2):
                         try: pixelations.remove(p)
-                        except: print('Some Pixelation Error')
+                        except: 
+                            if log: print('Some Pixelation Error')
                         continue
                     elif p['fc'] < fc-(detection_interval-1): 
                         continue
                     frame[p['region']['top']:p['region']['bottom'], p['region']['left']:p['region']['right']] = p['pixelation']
-
-            cv2.imshow('feed',frame)
+            
+            cv2.imshow('feed',frame) ### COMMENT OUT THIS LINE TO NOT OUTPUT A VIDEO
             out.write(frame) 
             fc += 1       
             if cv2.waitKey(10) & 0xFF == ord('q'):

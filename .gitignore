@@ -1,6 +1,6 @@
 venv/
 videos/input/*.mp4
 videos/output/*.avi
-videos/data/*.xlsx
+videos/comparison/*.avi
 videos/gifs/
 *.pyc

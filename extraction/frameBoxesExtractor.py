@@ -46,7 +46,7 @@ def detection_frame_interval(detections, call):
     
     return interval
 
-def detections_at_each_frame(df, frame_count, dim, fps, log=False):
+def detections_at_each_frame(df, frame_count, dim, fps, call, log=False):
     # Defining of variables
     fc, dc = 0, 0 # Frame Counter, Detection Counter Min, Detection Counter Max, and Unique ID, respectively
     frame_detections = []
@@ -55,7 +55,10 @@ def detections_at_each_frame(df, frame_count, dim, fps, log=False):
         if dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
             while dc <= max(df.index) and round(df.loc[dc, 'start_f']) == fc:
                 rect_data = df.iloc[dc]
-                frame_detections.append(add_detection_opencv(rect_data, fc))
+                if call == 'HOG_OPENCV':
+                    frame_detections.append(add_detection_opencv(rect_data, fc))
+                else:
+                    frame_detections.append(add_detection(rect_data, fc, dim))
                 dc+=1
         else:
             fc+=1

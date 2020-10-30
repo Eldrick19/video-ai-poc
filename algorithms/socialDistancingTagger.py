@@ -5,6 +5,13 @@ import math
 # is social distancing or not:
 # 0 - Social Distancing
 # 1 - Not Social Distancing
+# Loops through manipulated detections and analyzes distance between detections at each frame. 
+# Adds “Distancing violation” tag if detections are deemed too close. Also adds “lines” and “center” so that they can be drawn between detections if needed
+# INPUTS: 
+# (1) detections (Lists of dictionaries) - list of dictionaries, where each dictionary describes a detection at a certain frame
+# (2) dim (list with 2 values) - list that holds video dimensions [width,height]
+# OUTPUT: detections (Lists of dictionaries) - list of dictionaries, where each dictionary describes a detection at a certain frame
+
 def tag_social_distancing(detections, dim, log=False):
 
     # Initialize Variables
@@ -51,6 +58,7 @@ def tag_social_distancing(detections, dim, log=False):
 
             # If video area percentage is not too large, find distance between points
             distance_between_points = math.sqrt(pow((person_1_center_x-person_2_center_x),2)+pow((person_1_center_y-person_2_center_y),2))
+            
             if distance_between_points <= person_1_height:
                 rectangle_to_compare_1["distance_alert"], rectangle_to_compare_2["distance_alert"] = 1, 1
                 rectangle_to_compare_1["center"], rectangle_to_compare_2["center"] = '{"x":' + str(int(person_1_center_x)) + ',"y":' + str(int(person_1_center_y)) + '}', '{"x":' + str(int(person_2_center_x)) + ',"y":' + str(int(person_2_center_y)) + '}'

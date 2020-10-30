@@ -22,7 +22,7 @@ Ask Eldrick if you need access.
 	b) In the command prompt write 'set GOOGLE_APPLICATION_CREDENTIALS=[PATH]'.
 5) To run the function, make sure your CMD format is the following: 
 	a) _"python main.py [VIDEO_NAME] [DETECTION_CALL_1] (optional)[DETECTION_CALL_2]"_
-	b) For example: _"python main.py peope-detection PERSON_DETECTION HOG_OPENCV"_
+	b) For example: _"python main.py people-detection PERSON_DETECTION HOG_OPENCV"_
 	
 ## TEST VIDEOS
 Here is a link with interesting test videos:

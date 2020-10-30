@@ -53,6 +53,17 @@ def draw_rectangle(img, rect, dim, thickness = 8):
     cv2.putText(img, 'ID: '+str(rect['d_id']), (left+15, top+20), cv2.FONT_HERSHEY_SIMPLEX,  0.5, color, 2)
 
 
+# Draws detections analyzed by previously mentioned functions. Loops through each frame of video and leverages OpenCV. 
+# Call draw_rectangle() and anonymize_detection_pixelate() which draw the detection boxes around people with ID’s and pixelate the face region, respectively.
+# INPUTS:
+# (1) video_path (list) - holds the video path in list format [FOLDER PATH, FILE_NAME]
+# (2) output_path (list) - holds the video path of where the video will be output [FOLDER PATH, FILE_NAME]
+# (3) detections (list of dictionaries) - list of dictionaries, where each dictionary describes a detection at a certain frame
+# (4) fps (int) - frames per second of videos
+# (5) dim (list 2 values) - holds video dimensions [WIDTH,HEIGHT]
+# (6) detection_interval (int) - used to determine the interval between each detection in frames, useful variable for pixelation
+# (7) blur_faces (Boolean) - Tag to determine if faces should be pixelized or not
+
 def draw_detections(video_path, output_path, detections, fps, dim, detection_interval, blur_faces, log=False):
     # Definition of variables
     cap=cv2.VideoCapture(''.join(video_path))

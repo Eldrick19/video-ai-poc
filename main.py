@@ -23,6 +23,24 @@ import pandas as pd
 import sys
 import time
 
+# Main function that calls all individual function to analyze video one by one. In the following order calls: 
+# (1) downloading video from Cloud Storage, 
+# (2) extracting person detection, 
+# (3) data manipulation, 
+# (4) running distancing algorithms, 
+# (5) saving data to BigQuery, 
+# (6) drawing detections onto video, 
+# (7) saving video to Cloud Storage
+# INPUTS: 
+# video_name (string) - Name of video only (i.e. people-detection) 
+# call (string) - Name of person tracking call
+# storage_online (Boolean) - Tag to determine if video input is stored on Cloud Storage or locally in "videos/input" folder
+# blur_faces (Boolean) - Tag to determine if faces should be pixelized or not
+# OUTPUTS: 
+# (1) Social distancing data output to BigQuery (under DATA)
+# (2) Rendered video to "videos/output/" folder
+# (3) Rendered video to Cloud Storage bucket
+
 def social_distancing_detection(video_name, call, storage_online, blur_faces):
     # Define important variables
     video_path = ['videos/input/', video_name + '.mp4']
@@ -54,6 +72,9 @@ def social_distancing_detection(video_name, call, storage_online, blur_faces):
             person_tracking_array = personTrackingExtractor2.detect_person(video_path)
         elif call == 'HOG_OPENCV':
             person_tracking_array = personTrackingExtractor3.detect_person(video_path, fps, video_dimensions)
+        else:
+            print('You have not entered a valid call, please make sure ')
+            exit
             
         # EXTRACTION - Perform light data manipulation
         frame_detections = lightDataManipulator.format_data(person_tracking_array, fps)
@@ -70,15 +91,15 @@ def social_distancing_detection(video_name, call, storage_online, blur_faces):
         print('\nSaving social distancing data to the Cloud...')
         bqJobHelper.push_to_bq(frame_detections, video_name, call)
 
-        # STORAGE - Upload video to Cloud Storage
-        print('\nPushing video to Cloud Storage...')
-        videoUploader.upload_video(output_path)
-
     detection_interval = frameBoxesExtractor.detection_frame_interval(frame_detections, call) # Get detection interval (variable that helps with face pixelization)
 
     # FRONTEND - Display person tracking
     print('\nDisplaying Results of '+call+'...')
     outputVisualizer.draw_detections(video_path, output_path, frame_detections, fps, video_dimensions, detection_interval, blur_faces)
+
+    # STORAGE - Upload video to Cloud Storage
+    print('\nPushing video to Cloud Storage...')
+    videoUploader.upload_video(output_path)
 
     print('\nDone.\n')
 

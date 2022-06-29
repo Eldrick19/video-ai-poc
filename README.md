@@ -2,7 +2,7 @@
  
 This repository holds the code for a Vision POC. The Vision POC leverages GCP and its services to detect social distancing among people from a livecam. Worked on this at Adastra Corporation
 
-![A detection from this app](https://github.com/Eldrick19/video-ai-poc/tree/master/artifacts/img/detection.png)
+![A detection from this app](https://github.com/Eldrick19/video-ai-poc/blob/d7c3e03c1789729bb5bf468117f934407bc5b96e/artifacts/img/detection.png)
 
 Before running main.py, ensure that you have done the following:
 
